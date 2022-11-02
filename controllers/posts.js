@@ -2,11 +2,53 @@ import mongoose from "mongoose";
 import PostMessage from "../models/postMessage.js";
 
 export const getPosts = async (req, res) => {
+  const { page = 1, limit = 8 } = req.query;
+
   try {
-    const postMessages = await PostMessage.find();
-    res.status(200).json(postMessages);
+    const startIndex = (Number(page) - 1) * limit;
+    const total = await PostMessage.countDocuments({});
+
+    const posts = await PostMessage.find()
+      .sort({ _id: -1 })
+      .limit(limit)
+      .skip(startIndex);
+
+    res.status(200).json({
+      data: posts,
+      currentPage: Number(page),
+      numberOfPage: Math.ceil(total / limit),
+    });
   } catch (error) {
     res.status(404).json({ message: error.message });
+  }
+};
+
+export const getPostById = async (req, res) => {
+  try {
+    const { id: _id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res.status(404).save("No post with that id");
+    }
+    const post = await PostMessage.findById(_id);
+    res.json(post);
+  } catch (error) {
+    res.status(409).json({ message: error.message });
+  }
+};
+
+export const getPostsBySearch = async (req, res) => {
+  const { searchQuery, tags } = req.query;
+
+  try {
+    const title = new RegExp(searchQuery, "i");
+
+    const posts = await PostMessage.find({
+      $or: [{ title }, { tags: { $in: tags.split(",") } }],
+    });
+
+    res.json({ data: posts });
+  } catch (error) {
+    res.status(409).json({ message: error.message });
   }
 };
 
