@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import PostMessage from "../models/postMessage.js";
+import PostMessage, { CommentModel } from "../models/postMessage.js";
 
 export const getPosts = async (req, res) => {
   const { page = 1, limit = 8 } = req.query;
@@ -115,4 +115,35 @@ export const likePost = async (req, res) => {
   });
 
   res.json(updatedPost);
+};
+
+export const commentPost = async (req, res) => {
+  const { id } = req.params;
+  const { value } = req.body;
+
+  if (!req.userId) return res.json({ message: "Unauthenticated" });
+
+  const post = await PostMessage.findById(id);
+  post.comments.push({ value: value, creator: req.userId });
+
+  const updatedPost = await PostMessage.findByIdAndUpdate(id, post, {
+    new: true,
+  });
+  res.json(updatedPost);
+};
+
+export const getAllUserComments = async (req, res) => {
+  if (!req.userId) return res.json({ message: "Unauthenticated" });
+
+  try {
+    const postWithComments = await PostMessage.find({
+      comments: { $elemMatch: { creator: req.userId } },
+    });
+    const comments = postWithComments.map((item) =>
+      item.comments?.filter((item) => item.creator === req.userId)
+    );
+    res.status(200).json(comments.flat(1));
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
 };

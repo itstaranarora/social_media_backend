@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+const commentSchema = mongoose.Schema({
+  value: String,
+  creator: String,
+});
+
+export const CommentModel = mongoose.model("CommentModel", commentSchema);
+
 const postSchema = mongoose.Schema({
   title: String,
   message: String,
@@ -9,6 +16,10 @@ const postSchema = mongoose.Schema({
   selectedFile: String,
   likes: {
     type: [String],
+    default: [],
+  },
+  comments: {
+    type: [CommentModel.schema],
     default: [],
   },
   createdAt: {
